@@ -7,13 +7,13 @@ import { UsersService } from './users/users.service';
 import { Imob, ImobSchema } from './imob/imob.model';
 import { ImobsController } from './imob/imob.controller';
 import { ImobsService } from './imob/imob.service';
-import { DATABASE_URL } from "env";
+// import { DATABASE_URL } from "env";
 import { CollaboratorsController } from './collaborators/collaborators.controller';
 import { CollaboratorsService } from './collaborators/collaborators.service';
 import { Collaborator, CollaboratorSchema } from './collaborators/collaborators.model';
 
-console.log("data...", DATABASE_URL)
-
+const PORT = 5000;
+const DATABASE_URL = 'mongodb+srv://alexandredellanno:Xela-2208@cluster0.gaixo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 @Module({
   imports: [
     MongooseModule.forRoot(DATABASE_URL),

@@ -5,12 +5,10 @@ import { Imob } from './imob.model';
 
 @Injectable()
 export class ImobsService {
-  constructor(@InjectModel(Imob.name) private imobModel: Model<Imob>) {}
+  constructor(@InjectModel(Imob.name) private imobModel: Model<Imob>) { }
 
   async create(imob: Imob): Promise<Imob> {
-    console.log('payload service...', imob)
     const createdImob = new this.imobModel(imob);
-    console.log('createdImob service...', createdImob)
     return createdImob.save();
   }
 
@@ -18,8 +16,70 @@ export class ImobsService {
     return this.imobModel.find().exec();
   }
 
-  async findOne(id: string): Promise<Imob> {
-    return this.imobModel.findById(id).exec();
+  // async findAll(): Promise<{ data: Imob[] | null}> {
+
+  //   try {
+  //     const data = await this.imobModel.find().exec();
+  //     console.log('data...', data)
+      
+  //     if (!data) {
+  //       return {
+  //         data: null
+  //         // message: "Nada Encontrado !!!",
+  //         // status: 404
+  //       }
+  //     };
+      
+  //     return {
+  //       data
+  //     };
+
+  //       // message: "Dados retornados com sucesso !!",
+  //       // status: 200
+      
+
+  //   } catch (error) {
+  //     return {
+  //       data: null,
+  //       // message: 'Erro ao buscar imóvel',
+  //       // status: 500
+  //     };
+  //   }
+  // }
+
+  // async findOne(id: string): Promise<Imob> {
+  //   return (
+
+  //   this.imobModel.findById(id).exec()    
+  //   )
+  // }
+
+  async findOne(id: string): Promise<{ data: Imob | null; message: string; status: number }> {
+    try {
+      
+      const data = await this.imobModel.findById(id).exec();
+
+      if (!data) {
+        return {
+          data: null,
+          message: 'Imóvel não encontrado',
+          status: 404
+        };
+      }
+
+      return {
+        data,
+        message: 'Imóvel encontrado com sucesso',
+        status: 200
+      };
+
+    } catch (error) {
+      return {
+        data: null,
+        message: 'Erro ao buscar imóvel',
+        status: 500
+      };
+    }
   }
 
   async findImage(id: string): Promise<Imob> {

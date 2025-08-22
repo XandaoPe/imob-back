@@ -8,7 +8,6 @@ export class ImobsController {
 
   @Post()
   create(@Body() imob: Imob): Promise<Imob> {
-    console.log('payload controller...', imob)
     return this.imobsService.create(imob);
   }
 
@@ -18,7 +17,7 @@ export class ImobsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Imob> {
+  findOne(@Param('id') id: string): Promise <{data:Imob,message:string,status:number}> {
     return this.imobsService.findOne(id);
   }
 

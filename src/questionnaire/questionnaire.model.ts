@@ -3,6 +3,7 @@ import { Document } from 'mongoose';
 
 @Schema()
 export class Questionnaire extends Document {
+
   @Prop()
   question: string;
 

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
 import { Response } from './response.model';
 import { ResponsesService } from './response.service';
-
+import { PopulatedResponse } from './response.service';
 @Controller('responses')
 export class ResponsesController {
   constructor(private readonly responsesService: ResponsesService) {}
@@ -12,13 +12,18 @@ export class ResponsesController {
   }
 
   @Get()
-  findAll(): Promise<Response[]> {
+  async findAll(): Promise<PopulatedResponse[]> {
     return this.responsesService.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Response> {
     return this.responsesService.findOne(id);
+  }
+
+  @Get('by-question/:questionId')
+  async findByQuestionId(@Param('questionId') questionId: string) {
+    return this.responsesService.findByQuestionId(questionId);
   }
 
   @Put(':id')

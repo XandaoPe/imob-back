@@ -25,8 +25,8 @@ export class Response extends Document {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: "Questionnaire" })
   id_question: MongooseSchema.Types.ObjectId;
 
-  // @Prop()
-  // isDeleted: boolean;
+  @Prop({ default: false })
+  isDeleted: boolean;
 }
 
 export const ResponseSchema = SchemaFactory.createForClass(Response);

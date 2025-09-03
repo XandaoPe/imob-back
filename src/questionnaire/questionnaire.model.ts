@@ -7,6 +7,9 @@ export class Questionnaire extends Document {
   @Prop()
   question: string;
 
+  @Prop({ default: false })
+  isDeleted: boolean;
+
 }
 
 export const QuestionnaireSchema = SchemaFactory.createForClass(Questionnaire);

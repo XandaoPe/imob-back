@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
 import { Collaborator } from './collaborators.model';
 import { CollaboratorsService } from './collaborators.service';
-
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth } from '@nestjs/swagger';
+@ApiBearerAuth('access-token')
 @Controller('collaborators')
 export class CollaboratorsController {
   constructor(private readonly collaboratorsService: CollaboratorsService) {}
+  @UseGuards(AuthGuard('jwt')) 
 
   @Post()
   create(@Body() collaborator: Collaborator): Promise<Collaborator> {

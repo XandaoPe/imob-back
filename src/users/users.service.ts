@@ -5,7 +5,7 @@ import { User } from './user.model';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(@InjectModel(User.name) private userModel: Model<User>) { }
 
   async create(user: User): Promise<User> {
     console.log('payload service...', user)
@@ -32,5 +32,9 @@ export class UsersService {
 
   async remove(id: string): Promise<User> {
     return this.userModel.findByIdAndDelete(id).exec();
+  }
+
+  async findOneByEmail(email: string): Promise<User> {
+    return this.userModel.findOne({ email }).exec();
   }
 }

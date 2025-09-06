@@ -9,6 +9,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator'
 import { UserRole } from './user.model';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 @ApiTags('users')
 @ApiBearerAuth('access-token')
@@ -40,6 +41,15 @@ export class UsersController {
   @ApiOperation({ summary: 'Atualizar usuário' })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<User> {
     return this.usersService.update(id, updateUserDto);
+  }
+
+  @Put(':id/password')
+  @ApiOperation({ summary: 'Alterar a senha do usuário' })
+  async updatePassword(
+    @Param('id') id: string,
+    @Body() updatePasswordDto: UpdatePasswordDto
+  ): Promise<User> {
+    return this.usersService.updatePassword(id, updatePasswordDto);
   }
 
   @Delete(':id')

@@ -1,11 +1,12 @@
 // src/users/users.service.ts
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserRole } from './user.model';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 @Injectable()
 export class UsersService implements OnModuleInit {
@@ -90,6 +91,33 @@ export class UsersService implements OnModuleInit {
       .select('-password')
       .exec();
   }
+
+  async updatePassword(id: string, updatePasswordDto: UpdatePasswordDto): Promise<User> {
+    // 1. Encontre o usuário, incluindo a senha
+    const user = await this.userModel.findById(id).select('+password').exec();
+
+    // 2. Verifique se o usuário existe
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    // 3. Valide a senha atual
+    const isPasswordValid = await bcrypt.compare(updatePasswordDto.currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Senha atual incorreta.');
+    }
+
+    // 4. Hasheie a nova senha
+    const hashedPassword = await bcrypt.hash(updatePasswordDto.newPassword, 10);
+
+    // 5. Atualize a senha e salve
+    user.password = hashedPassword;
+    await user.save();
+
+    // 6. Retorne o usuário sem a senha
+    return this.userModel.findById(id).select('-password').exec();
+  }
+
 
   async remove(id: string): Promise<User> {
     return this.userModel.findByIdAndDelete(id).exec();

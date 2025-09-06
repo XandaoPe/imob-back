@@ -11,7 +11,6 @@ export class CollaboratorsController {
 
   @Post()
   create(@Body() collaborator: Collaborator): Promise<Collaborator> {
-    console.log('payload controller...', collaborator)
     return this.collaboratorsService.create(collaborator);
   }
 

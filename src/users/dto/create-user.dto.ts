@@ -21,4 +21,17 @@ export class CreateUserDto {
     @IsArray()
     @IsEnum(UserRole, { each: true })
     roles?: UserRole[];
+
+    @ApiProperty()
+    @IsNotEmpty()
+    cpf: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    phone: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    cargo: string;
+
 }

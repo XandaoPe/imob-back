@@ -1,6 +1,8 @@
+// src/auth/auth.service.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -9,19 +11,38 @@ export class AuthService {
         private jwtService: JwtService
     ) { }
 
-    async validateUser(email: string, pass: string): Promise<any> {
-        const user = await this.usersService.findOneByEmail(email); // Você precisará de adicionar este método no UsersService
-        if (user && user.password === pass) { // Em produção, use um hash de senha como bcrypt
-            const { password, ...result } = user.toObject();
-            return result;
+    async validateUser(email: string, password: string): Promise<any> {
+        const user = await this.usersService.findOneByEmail(email);
+
+        if (!user) {
+            throw new UnauthorizedException('Email não encontrado');
         }
-        return null;
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Senha incorreta');
+        }
+
+        const { password: _, ...userWithoutPassword } = user.toObject();
+        return userWithoutPassword;
     }
 
     async login(user: any) {
-        const payload = { email: user.email, sub: user._id, role: user.role };
+        const payload = {
+            email: user.email,
+            sub: user._id,
+            roles: user.roles
+        };
+
         return {
             access_token: this.jwtService.sign(payload),
+            user: {
+                id: user._id,
+                email: user.email,
+                name: user.name,
+                roles: user.roles
+            }
         };
     }
 }

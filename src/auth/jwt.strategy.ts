@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+// src/auth/jwt.strategy.ts
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersService } from '../users/users.service';
@@ -9,17 +10,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: 'xandaope', // Use a mesma chave que usou no AuthModule
+            secretOrKey: 'xandaope',
         });
     }
 
     async validate(payload: any) {
-        // Este payload vem do token. Você pode usá-lo para encontrar o utilizador.
-        // Lembre-se de não retornar a senha.
         const user = await this.usersService.findOneByEmail(payload.email);
         if (!user) {
-            throw new UnauthorizedException();
+            return null;
         }
-        return user;
+
+        return {
+            id: user._id,
+            email: user.email,
+            name: user.name,
+            roles: user.roles
+        };
     }
 }

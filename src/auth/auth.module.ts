@@ -8,6 +8,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { UsersService } from '../users/users.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../users/user.model';
+import { EmailService } from 'src/email/email.service';
 
 @Module({
     imports: [
@@ -18,7 +19,7 @@ import { User, UserSchema } from '../users/user.model';
             signOptions: { expiresIn: '1h' },
         }),
     ],
-    providers: [AuthService, JwtStrategy, UsersService],
+    providers: [AuthService, JwtStrategy, UsersService, EmailService],
     controllers: [AuthController],
     exports: [AuthService],
 })

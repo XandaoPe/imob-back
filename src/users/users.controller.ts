@@ -10,6 +10,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator'
 import { UserRole } from './user.model';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('users')
 @ApiBearerAuth('access-token')
@@ -64,5 +66,22 @@ export class UsersController {
   @ApiOperation({ summary: 'Buscar usuários por perfil' })
   findByRole(@Param('role') role: UserRole): Promise<User[]> {
     return this.usersService.findByRole(role);
+  }
+
+  // 🔥 NOVA ROTA: Solicitar redefinição de senha
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Solicitar redefinição de senha por e-mail' })
+  @UseGuards() // ⚠️ Remova os guards de autenticação
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<void> {
+    console.log('forgotPasswordDto', forgotPasswordDto);
+    return this.usersService.forgotPassword(forgotPasswordDto);
+  }
+
+  // 🔥 NOVA ROTA: Redefinir senha com token
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Redefinir senha com token recebido por e-mail' })
+  @UseGuards() // ⚠️ Remova os guards de autenticação
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<User> {
+    return this.usersService.resetPassword(resetPasswordDto);
   }
 }

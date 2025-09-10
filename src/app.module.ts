@@ -1,3 +1,4 @@
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './users/user.model';
@@ -15,10 +16,12 @@ import { Questionnaire, QuestionnaireSchema } from './questionnaire/questionnair
 import { Response, ResponseSchema } from './response/response.model';
 import { ResponsesController } from './response/response.controller';
 import { ResponsesService } from './response/response.service';
-import { AuthModule } from './auth/auth.module'; // Importe o AuthModule aqui
+import { AuthModule } from './auth/auth.module';
+import { EmailService } from './email/email.service'; // 🔥 Importe o EmailService
 
 const PORT = 5000;
 const DATABASE_URL = 'mongodb+srv://alexandredellanno:Xela-2208@cluster0.gaixo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+
 @Module({
   imports: [
     MongooseModule.forRoot(DATABASE_URL),
@@ -27,9 +30,22 @@ const DATABASE_URL = 'mongodb+srv://alexandredellanno:Xela-2208@cluster0.gaixo.m
     MongooseModule.forFeature([{ name: Collaborator.name, schema: CollaboratorSchema }]),
     MongooseModule.forFeature([{ name: Questionnaire.name, schema: QuestionnaireSchema }]),
     MongooseModule.forFeature([{ name: Response.name, schema: ResponseSchema }]),
-    AuthModule // Adicione-o aqui
+    AuthModule,
   ],
-  controllers: [UsersController, ImobsController, CollaboratorsController, QuestionnairesController, ResponsesController],
-  providers: [UsersService, ImobsService, CollaboratorsService, QuestionnairesService, ResponsesService],
+  controllers: [
+    UsersController,
+    ImobsController,
+    CollaboratorsController,
+    QuestionnairesController,
+    ResponsesController,
+  ],
+  providers: [
+    UsersService,
+    ImobsService,
+    CollaboratorsService,
+    QuestionnairesService,
+    ResponsesService,
+    EmailService, // 🔥 Adicione o EmailService aqui
+  ],
 })
 export class AppModule { }

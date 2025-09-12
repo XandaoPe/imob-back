@@ -15,15 +15,15 @@ export class EmailService {
             auth: {
                 user: 'alexandre.carvalho.dellanno@gmail.com', // Substitua pelo seu e-mail
                 pass: 'xyzy yfkm umsa xoui', // Substitua pela sua senha de aplicativo
-                // pass: 'Xela@2208', // Substitua pela sua senha de aplicativo
             },
         });
     }
 
+    // ⚠️ MÉTODO ANTIGO: Envia um link de redefinição
     async sendPasswordResetEmail(to: string, resetLink: string): Promise<void> {
         const mailOptions = {
             from: 'alexandre.carvalho.dellanno@gmail.com',
-            to, // Substitua pelo e-mail do destinatário
+            to,
             subject: 'Redefinição de Senha',
             html: `
         <p>Olá,</p>
@@ -41,6 +41,32 @@ export class EmailService {
             console.log(`✅ E-mail de redefinição enviado para: ${to}`);
         } catch (error) {
             console.error(`❌ Erro ao enviar e-mail para ${to}:`, error);
+            throw new Error('Falha ao enviar e-mail de redefinição.');
+        }
+    }
+
+    // 🔥 NOVO MÉTODO: Envia um código de redefinição de 6 dígitos
+    async sendPasswordResetCode(to: string, resetCode: string): Promise<void> {
+        const mailOptions = {
+            from: 'alexandre.carvalho.dellanno@gmail.com',
+            to,
+            subject: 'Código de Redefinição de Senha',
+            html: `
+        <p>Olá,</p>
+        <p>Você solicitou a redefinição da sua senha. Use o código abaixo para continuar:</p>
+        <h2 style="font-weight: bold; font-size: 24px;">${resetCode}</h2>
+        <p>Este código é válido por 1 hora.</p>
+        <p>Se você não solicitou esta redefinição, por favor, ignore este e-mail.</p>
+      `,
+        };
+
+        console.log('Enviando e-mail com código de redefinição para:', to);
+
+        try {
+            await this.transporter.sendMail(mailOptions);
+            console.log(`✅ E-mail com código de redefinição enviado para: ${to}`);
+        } catch (error) {
+            console.error(`❌ Erro ao enviar e-mail com código para ${to}:`, error);
             throw new Error('Falha ao enviar e-mail de redefinição.');
         }
     }

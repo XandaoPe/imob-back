@@ -16,10 +16,10 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 @ApiTags('users')
 @ApiBearerAuth('access-token')
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+// @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
-  
+
   @Post()
   @ApiOperation({ summary: 'Criar novo usuário' })
   create(@Body() createUserDto: CreateUserDto): Promise<User> {
@@ -71,7 +71,7 @@ export class UsersController {
   // 🔥 NOVA ROTA: Solicitar redefinição de senha
   @Post('forgot-password')
   @ApiOperation({ summary: 'Solicitar redefinição de senha por e-mail' })
-  @UseGuards() // ⚠️ Remova os guards de autenticação
+  // @UseGuards() ⚠️ Remova os guards de autenticação
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<void> {
     console.log('forgotPasswordDto', forgotPasswordDto);
     return this.usersService.forgotPassword(forgotPasswordDto);
@@ -80,7 +80,7 @@ export class UsersController {
   // 🔥 NOVA ROTA: Redefinir senha com token
   @Post('reset-password')
   @ApiOperation({ summary: 'Redefinir senha com token recebido por e-mail' })
-  @UseGuards() // ⚠️ Remova os guards de autenticação
+  // @UseGuards() ⚠️ Remova os guards de autenticação
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<User> {
     return this.usersService.resetPassword(resetPasswordDto);
   }

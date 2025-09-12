@@ -12,6 +12,7 @@ import * as crypto from 'crypto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { EmailService } from 'src/email/email.service';
+
 @Injectable()
 export class UsersService implements OnModuleInit {
   constructor(@InjectModel(User.name)
@@ -141,48 +142,42 @@ export class UsersService implements OnModuleInit {
   // 🔥 NOVO MÉTODO: Solicitação de "esqueci a senha"
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<void> {
     const user = await this.userModel.findOne({ email: forgotPasswordDto.email }).exec();
-console.log('user', user);
-console.log('forgot...', forgotPasswordDto);
     if (!user) {
       // Por segurança, retorne sem erro.
       return;
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // GERA UM CÓDIGO DE 6 DÍGITOS
+    const passwordResetCode = Math.floor(100000 + Math.random() * 900000).toString();
     const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hora
 
-    user.resetPasswordToken = resetToken;
+    user.passwordResetCode = passwordResetCode; // 👈 Salva o código
     user.resetPasswordExpires = resetPasswordExpires;
     await user.save();
 
-    const resetLink = `http://localhost:5000/users/reset-password?token=${resetToken}`;
-
-    // Chame o serviço de e-mail
-    console.log('resetToken...', resetToken);
-    await this.emailService.sendPasswordResetEmail(user.email, resetLink);
+    // Chame o serviço de e-mail e envie o código, não um link
+    console.log('Código gerado:', passwordResetCode);
+    await this.emailService.sendPasswordResetCode(user.email, passwordResetCode);
   }
 
-  // 🔥 NOVO MÉTODO: Redefinir a senha com o token
+  // 🔥 NOVO MÉTODO: Redefinir a senha com o código
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<User> {
-    const { token, newPassword } = resetPasswordDto;
-
-    console.log('Token recebido na requisição:', token);
+    const { email, code, newPassword } = resetPasswordDto;
 
     const user = await this.userModel.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: new Date() },
+      email, // 👈 Busca pelo email
+      passwordResetCode: code, // 👈 Compara o código
+      resetPasswordExpires: { $gt: new Date() }, // 👈 Verifica se não expirou
     }).select('+password').exec();
 
-    console.log('Usuário encontrado:', user);
-
     if (!user) {
-      throw new BadRequestException('Token de redefinição inválido ou expirado.');
+      throw new BadRequestException('Código de redefinição inválido ou expirado.');
     }
 
     // Atualiza a senha
     user.password = await bcrypt.hash(newPassword, 10);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.passwordResetCode = undefined; // Limpa o código
+    user.resetPasswordExpires = undefined; // Limpa a data de expiração
     await user.save();
 
     // Retorna o usuário sem a senha

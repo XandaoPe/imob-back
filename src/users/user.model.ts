@@ -36,7 +36,7 @@ export class User extends Document {
   cargo: string;
 
   @Prop({ select: false })
-  resetPasswordToken: string;
+  passwordResetCode: string; // 👈 Campo alterado para "código"
 
   @Prop({ select: false })
   resetPasswordExpires: Date;

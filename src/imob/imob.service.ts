@@ -16,44 +16,6 @@ export class ImobsService {
     return this.imobModel.find().exec();
   }
 
-  // async findAll(): Promise<{ data: Imob[] | null}> {
-
-  //   try {
-  //     const data = await this.imobModel.find().exec();
-  //     console.log('data...', data)
-      
-  //     if (!data) {
-  //       return {
-  //         data: null
-  //         // message: "Nada Encontrado !!!",
-  //         // status: 404
-  //       }
-  //     };
-      
-  //     return {
-  //       data
-  //     };
-
-  //       // message: "Dados retornados com sucesso !!",
-  //       // status: 200
-      
-
-  //   } catch (error) {
-  //     return {
-  //       data: null,
-  //       // message: 'Erro ao buscar imóvel',
-  //       // status: 500
-  //     };
-  //   }
-  // }
-
-  // async findOne(id: string): Promise<Imob> {
-  //   return (
-
-  //   this.imobModel.findById(id).exec()    
-  //   )
-  // }
-
   async findOne(id: string): Promise<{ data: Imob | null; message: string; status: number }> {
     try {
       
@@ -80,10 +42,6 @@ export class ImobsService {
         status: 500
       };
     }
-  }
-
-  async findImage(id: string): Promise<Imob> {
-    return this.imobModel.findById(id).exec();
   }
 
   async update(id: string, imob: Imob): Promise<Imob> {

@@ -21,11 +21,6 @@ export class ImobsController {
     return this.imobsService.findOne(id);
   }
 
-  @Get('imagem/:id')
-  findImage(@Param('id') id: string): Promise<Imob> {
-    return this.imobsService.findImage(id);
-  }
-
   @Put(':id')
   update(@Param('id') id: string, @Body() imob: Imob): Promise<Imob> {
     return this.imobsService.update(id, imob);

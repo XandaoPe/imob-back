@@ -4,14 +4,33 @@ import { Document } from 'mongoose';
 @Schema()
 export class Imob extends Document {
 
-  @Prop()
-  thumb: string;
-
-  @Prop()
+  @Prop({
+    type: String,
+    enum: [
+      '01',
+      '02',
+      '03',
+      'República Masculina 01',
+      'República Masculina 02',
+      'República Masculina 03',
+      'República Feminina 01',
+      'República Feminina 02',
+      'República Feminina 03',
+    ],
+  })
   tipo: string;
 
   @Prop()
-  endereco: string;
+  rua: string;
+
+  @Prop()
+  numero: string;
+
+  @Prop()
+  complemento: string;
+
+  @Prop()
+  cep: string;
 
   @Prop()
   cidade: string;
@@ -20,10 +39,13 @@ export class Imob extends Document {
   uf: string;
 
   @Prop()
-  valor: string;
+  obs: string;
 
   @Prop()
-  descricao: string;
+  copasa: string;
+
+  @Prop()
+  cemig: string;
 
   @Prop()
   id_user: string;

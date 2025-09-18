@@ -73,18 +73,20 @@ export class UsersService implements OnModuleInit {
     const createdUser = new this.userModel({
       ...createUserDto,
       password: hashedPassword, // ← SEMPRE hasheie a senha
-      roles: createUserDto.roles || [UserRole.USER]
+      roles: createUserDto.roles || [UserRole.USER],
+      isDisabled: false, // Garanta que novos usuários não estejam desabilitados
+
     });
 
     return createdUser.save();
   }
 
   async findAll(): Promise<User[]> {
-    return this.userModel.find().select('-password').exec();
+    return this.userModel.find({ isDisabled: false }).select('-password').exec();
   }
 
   async findOne(id: string): Promise<User> {
-    return this.userModel.findById(id).select('-password').exec();
+    return this.userModel.findOne({ _id: id, isDisabled: false }).select('-password').exec();
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -180,5 +182,17 @@ export class UsersService implements OnModuleInit {
 
     // Retorna o usuário sem a senha
     return this.userModel.findById(user._id).select('-password').exec();
+  }
+  // 👈 NOVO MÉTODO: desativa o usuário
+  async deactivate(id: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      id,
+      { isDisabled: true },
+      { new: true }
+    ).exec();
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+    return user;
   }
 }

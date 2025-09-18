@@ -36,10 +36,14 @@ export class User extends Document {
   cargo: string;
 
   @Prop({ select: false })
-  passwordResetCode: string; // 👈 Campo alterado para "código"
+  passwordResetCode: string;
 
   @Prop({ select: false })
   resetPasswordExpires: Date;
+
+  // 👈 Adicione a propriedade para desabilitar o usuário
+  @Prop({ default: false })
+  isDisabled: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

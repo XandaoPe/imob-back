@@ -1,5 +1,5 @@
 // src/users/users.controller.ts
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { User } from './user.model';
 import { UsersService } from './users.service';
@@ -81,5 +81,13 @@ export class UsersController {
   // @UseGuards() ⚠️ Remova os guards de autenticação
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<User> {
     return this.usersService.resetPassword(resetPasswordDto);
+  }
+
+  // 🔥 Nova rota para desativar o usuário
+  @Patch(':id/deactivate')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Desativar um usuário (soft delete)' })
+  deactivate(@Param('id') id: string): Promise<User> {
+    return this.usersService.deactivate(id);
   }
 }

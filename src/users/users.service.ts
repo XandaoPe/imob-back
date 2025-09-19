@@ -56,7 +56,11 @@ export class UsersService implements OnModuleInit {
           name: 'admin',
           email: 'admin@admin.com',
           password: await bcrypt.hash('admin', 10),
-          roles: [UserRole.ADMIN]
+          roles: [UserRole.ADMIN],
+          cargo: 'Administrador',
+          cpf: '000.000.000-00',
+          phone: '00000-0000',
+          isDisabled: false, // ← Garante que o admin não esteja desabilitado
         };
 
         await this.userModel.create(adminUser);

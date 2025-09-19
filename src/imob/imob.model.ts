@@ -47,6 +47,9 @@ export class Imob extends Document {
   @Prop()
   cemig: string;
 
+  @Prop({ default: false })
+  isDisabled: boolean;
+
   @Prop()
   id_user: string;
 

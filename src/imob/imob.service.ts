@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Imob } from './imob.model';
@@ -13,8 +13,12 @@ export class ImobsService {
   }
 
   async findAll(): Promise<Imob[]> {
-    return this.imobModel.find().exec();
+    return this.imobModel.find({ isDisabled: false }).exec();
   }
+
+    async findAllWithDisabled(): Promise<Imob[]> {
+      return this.imobModel.find().exec();
+    }
 
   async findOne(id: string): Promise<{ data: Imob | null; message: string; status: number }> {
     try {
@@ -51,4 +55,29 @@ export class ImobsService {
   async remove(id: string): Promise<Imob> {
     return this.imobModel.findByIdAndDelete(id).exec();
   }
+
+    async deactivate(id: string): Promise<Imob> {
+      const imob = await this.imobModel.findByIdAndUpdate(
+        id,
+        { isDisabled: true },
+        { new: true }
+      ).exec();
+      if (!imob) {
+        throw new NotFoundException('Imóvel não encontrado.');
+      }
+      return imob;
+    }
+  
+    // 🔥 NOVO MÉTODO: Ativa o usuário
+    async activate(id: string): Promise<Imob> {
+      const imob = await this.imobModel.findByIdAndUpdate(
+        id,
+        { isDisabled: false },
+        { new: true }
+      ).exec();
+      if (!imob) {
+        throw new NotFoundException('Usuário não encontrado.');
+      }
+      return imob;
+    }
 }

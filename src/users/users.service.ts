@@ -85,6 +85,11 @@ export class UsersService implements OnModuleInit {
     return this.userModel.find({ isDisabled: false }).select('-password').exec();
   }
 
+  // 🔥 NOVO MÉTODO: Retorna todos os usuários, ATIVOS e INATIVOS
+  async findAllWithDisabled(): Promise<User[]> {
+    return this.userModel.find().select('-password').exec();
+  }
+
   async findOne(id: string): Promise<User> {
     return this.userModel.findOne({ _id: id, isDisabled: false }).select('-password').exec();
   }
@@ -195,4 +200,18 @@ export class UsersService implements OnModuleInit {
     }
     return user;
   }
+
+  // 🔥 NOVO MÉTODO: Ativa o usuário
+  async activate(id: string): Promise<User> {
+    const user = await this.userModel.findByIdAndUpdate(
+      id,
+      { isDisabled: false },
+      { new: true }
+    ).exec();
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+    return user;
+  }
+
 }

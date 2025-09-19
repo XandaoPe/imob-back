@@ -31,6 +31,14 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  // 🔥 NOVO ENDPOINT: Retorna todos os usuários (ativos e inativos)
+  @Get('all')
+  @Roles(UserRole.ADMIN) // Apenas administradores podem ver todos os usuários
+  @ApiOperation({ summary: 'Listar todos os usuários, incluindo os inativos' })
+  findAllUsers(): Promise<User[]> {
+    return this.usersService.findAllWithDisabled();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar usuário por ID' })
   findOne(@Param('id') id: string): Promise<User> {
@@ -90,4 +98,13 @@ export class UsersController {
   deactivate(@Param('id') id: string): Promise<User> {
     return this.usersService.deactivate(id);
   }
+
+  // 🔥 NOVO ENDPOINT: Ativar um usuário
+  @Patch(':id/activate')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Ativar um usuário' })
+  activate(@Param('id') id: string): Promise<User> {
+    return this.usersService.activate(id);
+  }
+
 }

@@ -10,7 +10,7 @@ import { UpdatePasswordDto } from './dto/update-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { EmailService } from 'src/email/email.service';
-
+import * as xlsx from 'xlsx';
 @Injectable()
 export class UsersService implements OnModuleInit {
   constructor(@InjectModel(User.name)
@@ -19,17 +19,16 @@ export class UsersService implements OnModuleInit {
   ) { }
 
   async onModuleInit() {
-    await this.hashExistingPasswords(); // ← Corrige senhas existentes
+    await this.hashExistingPasswords();
     await this.createAdminUser();
   }
 
-  // 🔥 NOVO MÉTODO: Hashea todas as senhas em texto puro
   async hashExistingPasswords() {
     try {
       const usersWithPlainPassword = await this.userModel.find({
         $or: [
-          { password: { $regex: /^[a-zA-Z0-9]+$/ } }, // Senhas sem caracteres especiais de hash
-          { password: { $not: { $regex: /^\$2[aby]\$/ } } } // Não começa com padrão bcrypt
+          { password: { $regex: /^[a-zA-Z0-9]+$/ } },
+          { password: { $not: { $regex: /^\$2[aby]\$/ } } }
         ]
       });
 
@@ -60,7 +59,7 @@ export class UsersService implements OnModuleInit {
           cargo: 'Administrador',
           cpf: '000.000.000-00',
           phone: '00000-0000',
-          isDisabled: false, // ← Garante que o admin não esteja desabilitado
+          isDisabled: false,
         };
 
         await this.userModel.create(adminUser);
@@ -76,9 +75,9 @@ export class UsersService implements OnModuleInit {
 
     const createdUser = new this.userModel({
       ...createUserDto,
-      password: hashedPassword, // ← SEMPRE hasheie a senha
+      password: hashedPassword,
       roles: createUserDto.roles || [UserRole.USER],
-      isDisabled: false, // Garanta que novos usuários não estejam desabilitados
+      isDisabled: false,
 
     });
 
@@ -89,7 +88,6 @@ export class UsersService implements OnModuleInit {
     return this.userModel.find({ isDisabled: false }).select('-password').exec();
   }
 
-  // 🔥 NOVO MÉTODO: Retorna todos os usuários, ATIVOS e INATIVOS
   async findAllWithDisabled(): Promise<User[]> {
     return this.userModel.find().select('-password').exec();
   }
@@ -110,28 +108,17 @@ export class UsersService implements OnModuleInit {
   }
 
   async updatePassword(id: string, updatePasswordDto: UpdatePasswordDto): Promise<User> {
-    // 1. Encontre o usuário, incluindo a senha
     const user = await this.userModel.findById(id).select('+password').exec();
-
-    // 2. Verifique se o usuário existe
     if (!user) {
       throw new NotFoundException('Usuário não encontrado.');
     }
-
-    // 3. Valide a senha atual
     const isPasswordValid = await bcrypt.compare(updatePasswordDto.currentPassword, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Senha atual incorreta.');
     }
-
-    // 4. Hasheie a nova senha
     const hashedPassword = await bcrypt.hash(updatePasswordDto.newPassword, 10);
-
-    // 5. Atualize a senha e salve
     user.password = hashedPassword;
     await user.save();
-
-    // 6. Retorne o usuário sem a senha
     return this.userModel.findById(id).select('-password').exec();
   }
 
@@ -148,51 +135,38 @@ export class UsersService implements OnModuleInit {
     return this.userModel.find({ roles: role }).select('-password').exec();
   }
 
-  // 🔥 NOVO MÉTODO: Solicitação de "esqueci a senha"
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<void> {
     const user = await this.userModel.findOne({ email: forgotPasswordDto.email }).exec();
     if (!user) {
-      // Por segurança, retorne sem erro.
       return;
     }
-
-    // GERA UM CÓDIGO DE 6 DÍGITOS
     const passwordResetCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hora
-
-    user.passwordResetCode = passwordResetCode; // 👈 Salva o código
+    const resetPasswordExpires = new Date(Date.now() + 3600000);
+    user.passwordResetCode = passwordResetCode;
     user.resetPasswordExpires = resetPasswordExpires;
     await user.save();
-
-    // Chame o serviço de e-mail e envie o código, não um link
     console.log('Código gerado:', passwordResetCode);
     await this.emailService.sendPasswordResetCode(user.email, passwordResetCode);
   }
 
-  // 🔥 NOVO MÉTODO: Redefinir a senha com o código
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<User> {
     const { email, code, newPassword } = resetPasswordDto;
-
     const user = await this.userModel.findOne({
-      email, // 👈 Busca pelo email
-      passwordResetCode: code, // 👈 Compara o código
-      resetPasswordExpires: { $gt: new Date() }, // 👈 Verifica se não expirou
+      email,
+      passwordResetCode: code,
+      resetPasswordExpires: { $gt: new Date() },
     }).select('+password').exec();
 
     if (!user) {
       throw new BadRequestException('Código de redefinição inválido ou expirado.');
     }
-
-    // Atualiza a senha
     user.password = await bcrypt.hash(newPassword, 10);
-    user.passwordResetCode = undefined; // Limpa o código
-    user.resetPasswordExpires = undefined; // Limpa a data de expiração
+    user.passwordResetCode = undefined;
+    user.resetPasswordExpires = undefined;
     await user.save();
-
-    // Retorna o usuário sem a senha
     return this.userModel.findById(user._id).select('-password').exec();
   }
-  // 👈 NOVO MÉTODO: desativa o usuário
+
   async deactivate(id: string): Promise<User> {
     const user = await this.userModel.findByIdAndUpdate(
       id,
@@ -205,7 +179,6 @@ export class UsersService implements OnModuleInit {
     return user;
   }
 
-  // 🔥 NOVO MÉTODO: Ativa o usuário
   async activate(id: string): Promise<User> {
     const user = await this.userModel.findByIdAndUpdate(
       id,
@@ -218,4 +191,83 @@ export class UsersService implements OnModuleInit {
     return user;
   }
 
+  async importFromExcel(file: Express.Multer.File): Promise<any> {
+    try {
+      const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const usersData = xlsx.utils.sheet_to_json(worksheet);
+
+      const importSummary = {
+        created: 0,
+        updated: 0,
+        ignored: 0,
+        details: []
+      };
+
+      for (const userData of usersData) {
+        const { name, email, password, cpf, phone, cargo, roles } = userData as any;
+
+        if (!email) {
+          console.error(`❌ Ignorando linha com e-mail ausente: ${JSON.stringify(userData)}`);
+          importSummary.ignored++;
+          importSummary.details.push({ data: userData, status: 'Ignorado', reason: 'E-mail ausente' });
+          continue;
+        }
+
+        const existingUser = await this.userModel.findOne({ email }).exec();
+        const userPayload: any = {
+          name,
+          email,
+          cpf,
+          phone,
+          cargo,
+          roles: roles ? roles.split(',').map((role: string) => role.trim()) : [UserRole.USER],
+          isDisabled: false, // <-- Lógica para ativar usuários existentes
+        };
+
+        if (password) {
+          userPayload.password = await bcrypt.hash(password, 10);
+        }
+
+        if (existingUser) {
+          const updatedUser = await this.userModel.findByIdAndUpdate(
+            existingUser._id,
+            { $set: userPayload },
+            { new: true }
+          ).exec();
+          if (updatedUser) {
+            importSummary.updated++;
+            importSummary.details.push({ email, status: 'Atualizado (ativado)' });
+          } else {
+            importSummary.ignored++;
+            importSummary.details.push({ email, status: 'Erro', reason: 'Falha na atualização' });
+          }
+        } else {
+          if (!password) {
+            console.error(`❌ Ignorando novo usuário sem senha: ${email}`);
+            importSummary.ignored++;
+            importSummary.details.push({ email, status: 'Ignorado', reason: 'Senha ausente para novo usuário' });
+            continue;
+          }
+          const newUser = new this.userModel({
+            ...userPayload,
+            password: await bcrypt.hash(password, 10),
+            isDisabled: false, // <-- Lógica para ativar novos usuários
+          });
+          await newUser.save();
+          importSummary.created++;
+          importSummary.details.push({ email, status: 'Criado (ativado)' });
+        }
+      }
+
+      return {
+        message: `Importação concluída. ${importSummary.created} criados e ${importSummary.updated} atualizados.`,
+        ...importSummary,
+      };
+    } catch (error) {
+      console.error('❌ Erro na importação:', error);
+      throw new BadRequestException('Erro ao processar a planilha. Verifique o formato do arquivo e os cabeçalhos das colunas (name, email, password, cpf, phone, cargo, roles).');
+    }
+  }
 }

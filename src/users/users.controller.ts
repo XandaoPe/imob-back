@@ -1,6 +1,6 @@
 // src/users/users.controller.ts
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Patch } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Patch, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { User } from './user.model';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -10,6 +10,7 @@ import { UserRole } from './user.model';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('users')
 @ApiBearerAuth('access-token')
@@ -105,6 +106,32 @@ export class UsersController {
   @ApiOperation({ summary: 'Ativar um usuário' })
   activate(@Param('id') id: string): Promise<User> {
     return this.usersService.activate(id);
+  }
+
+  // 📁 NOVO ENDPOINT: Importar usuários de um arquivo Excel
+  @Post('import')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Importar usuários de uma planilha Excel' })
+  @ApiConsumes('multipart/form-data') // 👈 Informa ao Swagger o tipo de dado
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary', // 👈 Descreve o campo como um arquivo binário
+        },
+      },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async importUsers(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<any> {
+    if (!file) {
+      throw new BadRequestException('Nenhum arquivo enviado.');
+    }
+    return this.usersService.importFromExcel(file);
   }
 
 }

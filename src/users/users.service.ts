@@ -14,8 +14,9 @@ import * as xlsx from 'xlsx';
 
 @Injectable()
 export class UsersService implements OnModuleInit {
-  constructor(@InjectModel(User.name)
-  private userModel: Model<User>,
+  constructor(
+    @InjectModel(User.name)
+    private userModel: Model<User>,
     private emailService: EmailService,
   ) { }
 
@@ -195,7 +196,10 @@ export class UsersService implements OnModuleInit {
       const workbook = xlsx.read(file.buffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const usersData = xlsx.utils.sheet_to_json(worksheet);
+      // AQUI: Usamos xlsx.utils.sheet_to_json com a opção 'header' para mapear as colunas
+      const usersData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+      const headers = usersData[0] as string[];
+      const dataRows = usersData.slice(1);
 
       const importSummary = {
         created: 0,
@@ -204,13 +208,16 @@ export class UsersService implements OnModuleInit {
         details: []
       };
 
-      for (const userData of usersData) {
-        const { name, email, password, cpf, phone, cargo, roles } = userData as any;
+      for (const row of dataRows) {
+        const rowData = Object.fromEntries(
+          headers.map((header, i) => [header.toLowerCase(), row[i]])
+        );
+        const { name, email, cpf, phone, cargo, roles } = rowData as any;
 
         if (!email) {
-          console.error(`❌ Ignorando linha com e-mail ausente: ${JSON.stringify(userData)}`);
+          console.error(`❌ Ignorando linha com e-mail ausente: ${JSON.stringify(rowData)}`);
           importSummary.ignored++;
-          importSummary.details.push({ data: userData, status: 'Ignorado', reason: 'E-mail ausente' });
+          importSummary.details.push({ data: rowData, status: 'Ignorado', reason: 'E-mail ausente' });
           continue;
         }
 
@@ -225,38 +232,25 @@ export class UsersService implements OnModuleInit {
           isDisabled: false,
         };
 
-        if (password) {
-          userPayload.password = await bcrypt.hash(password, 10);
-        }
-
         if (existingUser) {
-          const updatedUser = await this.userModel.findByIdAndUpdate(
+          // Lógica para usuários existentes: atualiza os dados, mas ignora a senha.
+          await this.userModel.findByIdAndUpdate(
             existingUser._id,
             { $set: userPayload },
             { new: true }
           ).exec();
-          if (updatedUser) {
-            importSummary.updated++;
-            importSummary.details.push({ email, status: 'Atualizado (ativado)' });
-          } else {
-            importSummary.ignored++;
-            importSummary.details.push({ email, status: 'Erro', reason: 'Falha na atualização' });
-          }
+          importSummary.updated++;
+          importSummary.details.push({ email, status: 'Atualizado (ativado)' });
         } else {
-          if (!password) {
-            console.error(`❌ Ignorando novo usuário sem senha: ${email}`);
-            importSummary.ignored++;
-            importSummary.details.push({ email, status: 'Ignorado', reason: 'Senha ausente para novo usuário' });
-            continue;
-          }
+          // Lógica para novos usuários: cria o usuário com a senha padrão "123456"
+          const hashedPassword = await bcrypt.hash('123456', 10);
           const newUser = new this.userModel({
             ...userPayload,
-            password: await bcrypt.hash(password, 10),
-            isDisabled: false,
+            password: hashedPassword,
           });
           await newUser.save();
           importSummary.created++;
-          importSummary.details.push({ email, status: 'Criado (ativado)' });
+          importSummary.details.push({ email, status: 'Criado com senha padrão' });
         }
       }
 
@@ -266,22 +260,21 @@ export class UsersService implements OnModuleInit {
       };
     } catch (error) {
       console.error('❌ Erro na importação:', error);
-      throw new BadRequestException('Erro ao processar a planilha. Verifique o formato do arquivo e os cabeçalhos das colunas (name, email, password, cpf, phone, cargo, roles).');
+      throw new BadRequestException('Erro ao processar a planilha. Verifique o formato do arquivo e os cabeçalhos das colunas (name, email, cpf, phone, cargo, roles).');
     }
   }
 
-  // 📁 NOVO MÉTODO: Exportar usuários para Excel
+  // 📁 MÉTODO: Exportar usuários para Excel
   async exportToExcel(): Promise<Buffer> {
     const users = await this.userModel.find().select('-password').exec();
 
     const usersToExport = users.map(user => ({
-      'ID': user._id,
-      'Nome': user.name,
-      'Email': user.email,
-      'Telefone': user.phone,
-      'CPF': user.cpf,
-      'Cargo': user.cargo,
-      'Status': user.isDisabled ? 'Inativo' : 'Ativo'
+      'name': user.name,
+      'email': user.email,
+      'phone': user.phone,
+      'cpf': user.cpf,
+      'cargo': user.cargo,
+      'status': user.isDisabled ? 'Inativo' : 'Ativo'
     }));
 
     const worksheet = xlsx.utils.json_to_sheet(usersToExport);

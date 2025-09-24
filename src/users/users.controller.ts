@@ -1,5 +1,6 @@
 // src/users/users.controller.ts
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Patch, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Patch, UseInterceptors, UploadedFile, BadRequestException, Res } from '@nestjs/common';
+import { Response } from 'express'; // 👈 Importe o Response do express
 import { ApiBearerAuth, ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { User } from './user.model';
 import { UsersService } from './users.service';
@@ -32,14 +33,28 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  // 🔥 NOVO ENDPOINT: Retorna todos os usuários (ativos e inativos)
   @Get('all')
-  @Roles(UserRole.ADMIN) // Apenas administradores podem ver todos os usuários
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Listar todos os usuários, incluindo os inativos' })
   findAllUsers(): Promise<User[]> {
     return this.usersService.findAllWithDisabled();
   }
 
+  // 📁 NOVO ENDPOINT: Exportar usuários para um arquivo Excel
+  @Get('export')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Exportar todos os usuários para uma planilha Excel' })
+  async exportUsers(@Res() res: Response): Promise<void> {
+    const fileBuffer = await this.usersService.exportToExcel();
+
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="usuarios.xlsx"',
+    });
+
+    res.send(fileBuffer);
+  }
+  
   @Get(':id')
   @ApiOperation({ summary: 'Buscar usuário por ID' })
   findOne(@Param('id') id: string): Promise<User> {
@@ -75,24 +90,19 @@ export class UsersController {
     return this.usersService.findByRole(role);
   }
 
-  // 🔥 NOVA ROTA: Solicitar redefinição de senha
   @Post('forgot-password')
   @ApiOperation({ summary: 'Solicitar redefinição de senha por e-mail' })
-  // @UseGuards() ⚠️ Remova os guards de autenticação
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<void> {
     console.log('forgotPasswordDto', forgotPasswordDto);
     return this.usersService.forgotPassword(forgotPasswordDto);
   }
 
-  // 🔥 NOVA ROTA: Redefinir senha com token
   @Post('reset-password')
   @ApiOperation({ summary: 'Redefinir senha com token recebido por e-mail' })
-  // @UseGuards() ⚠️ Remova os guards de autenticação
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<User> {
     return this.usersService.resetPassword(resetPasswordDto);
   }
 
-  // 🔥 Nova rota para desativar o usuário
   @Patch(':id/deactivate')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Desativar um usuário (soft delete)' })
@@ -100,7 +110,6 @@ export class UsersController {
     return this.usersService.deactivate(id);
   }
 
-  // 🔥 NOVO ENDPOINT: Ativar um usuário
   @Patch(':id/activate')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Ativar um usuário' })
@@ -108,18 +117,17 @@ export class UsersController {
     return this.usersService.activate(id);
   }
 
-  // 📁 NOVO ENDPOINT: Importar usuários de um arquivo Excel
   @Post('import')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Importar usuários de uma planilha Excel' })
-  @ApiConsumes('multipart/form-data') // 👈 Informa ao Swagger o tipo de dado
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         file: {
           type: 'string',
-          format: 'binary', // 👈 Descreve o campo como um arquivo binário
+          format: 'binary',
         },
       },
     },
@@ -133,5 +141,6 @@ export class UsersController {
     }
     return this.usersService.importFromExcel(file);
   }
+
 
 }

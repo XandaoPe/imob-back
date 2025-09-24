@@ -11,6 +11,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { EmailService } from 'src/email/email.service';
 import * as xlsx from 'xlsx';
+
 @Injectable()
 export class UsersService implements OnModuleInit {
   constructor(@InjectModel(User.name)
@@ -78,7 +79,6 @@ export class UsersService implements OnModuleInit {
       password: hashedPassword,
       roles: createUserDto.roles || [UserRole.USER],
       isDisabled: false,
-
     });
 
     return createdUser.save();
@@ -121,7 +121,6 @@ export class UsersService implements OnModuleInit {
     await user.save();
     return this.userModel.findById(id).select('-password').exec();
   }
-
 
   async remove(id: string): Promise<User> {
     return this.userModel.findByIdAndDelete(id).exec();
@@ -223,7 +222,7 @@ export class UsersService implements OnModuleInit {
           phone,
           cargo,
           roles: roles ? roles.split(',').map((role: string) => role.trim()) : [UserRole.USER],
-          isDisabled: false, // <-- Lógica para ativar usuários existentes
+          isDisabled: false,
         };
 
         if (password) {
@@ -253,7 +252,7 @@ export class UsersService implements OnModuleInit {
           const newUser = new this.userModel({
             ...userPayload,
             password: await bcrypt.hash(password, 10),
-            isDisabled: false, // <-- Lógica para ativar novos usuários
+            isDisabled: false,
           });
           await newUser.save();
           importSummary.created++;
@@ -269,5 +268,26 @@ export class UsersService implements OnModuleInit {
       console.error('❌ Erro na importação:', error);
       throw new BadRequestException('Erro ao processar a planilha. Verifique o formato do arquivo e os cabeçalhos das colunas (name, email, password, cpf, phone, cargo, roles).');
     }
+  }
+
+  // 📁 NOVO MÉTODO: Exportar usuários para Excel
+  async exportToExcel(): Promise<Buffer> {
+    const users = await this.userModel.find().select('-password').exec();
+
+    const usersToExport = users.map(user => ({
+      'ID': user._id,
+      'Nome': user.name,
+      'Email': user.email,
+      'Telefone': user.phone,
+      'CPF': user.cpf,
+      'Cargo': user.cargo,
+      'Status': user.isDisabled ? 'Inativo' : 'Ativo'
+    }));
+
+    const worksheet = xlsx.utils.json_to_sheet(usersToExport);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Usuários');
+
+    return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
 }

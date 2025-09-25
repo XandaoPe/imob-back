@@ -65,7 +65,7 @@ export class UsersService implements OnModuleInit {
         };
 
         await this.userModel.create(adminUser);
-        console.log('✅ Usuário admin criado: admin@admin.com / admin123');
+        console.log('✅ Usuário admin criado: admin@admin.com / admin');
       }
     } catch (error) {
       console.error('❌ Erro ao criar usuário admin:', error);
@@ -196,7 +196,7 @@ export class UsersService implements OnModuleInit {
       const workbook = xlsx.read(file.buffer, { type: 'buffer' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      // AQUI: Usamos xlsx.utils.sheet_to_json com a opção 'header' para mapear as colunas
+
       const usersData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
       const headers = usersData[0] as string[];
       const dataRows = usersData.slice(1);
@@ -204,10 +204,35 @@ export class UsersService implements OnModuleInit {
       const importSummary = {
         created: 0,
         updated: 0,
+        deactivated: 0, // Novo contador para usuários desativados
         ignored: 0,
         details: []
       };
 
+      const emailsInSpreadsheet: Set<string> = new Set();
+
+      // 1. Coletar todos os e-mails da planilha
+      for (const row of dataRows) {
+        const rowData = Object.fromEntries(
+          headers.map((header, i) => [header.toLowerCase(), row[i]])
+        );
+        const { email } = rowData as any;
+        if (email) {
+          emailsInSpreadsheet.add(email.toLowerCase());
+        }
+      }
+
+      // 2. Desativar todos os usuários existentes que NÃO estão na planilha, exceto o admin
+      // Primeiro, desativa todos os usuários (exceto o admin)
+      const deactivateResult = await this.userModel.updateMany(
+        { email: { $ne: 'admin@admin.com' } }, // Não desativa o admin
+        { $set: { isDisabled: true } }
+      ).exec();
+      importSummary.deactivated = deactivateResult.modifiedCount;
+      console.log(`ℹ️ ${deactivateResult.modifiedCount} usuários (exceto admin) foram marcados como inativos.`);
+
+
+      // 3. Processar a planilha: Criar/Atualizar e Ativar
       for (const row of dataRows) {
         const rowData = Object.fromEntries(
           headers.map((header, i) => [header.toLowerCase(), row[i]])
@@ -221,26 +246,29 @@ export class UsersService implements OnModuleInit {
           continue;
         }
 
-        const existingUser = await this.userModel.findOne({ email }).exec();
+        const userEmailLower = email.toLowerCase(); // Normalizar e-mail
+
+        const existingUser = await this.userModel.findOne({ email: userEmailLower }).exec();
         const userPayload: any = {
           name,
-          email,
+          email: userEmailLower,
           cpf,
           phone,
           cargo,
           roles: roles ? roles.split(',').map((role: string) => role.trim()) : [UserRole.USER],
-          isDisabled: false,
+          isDisabled: false, // Define como ativo explicitamente para usuários da planilha
         };
 
         if (existingUser) {
           // Lógica para usuários existentes: atualiza os dados, mas ignora a senha.
+          // O isDisabled já foi definido como false no userPayload
           await this.userModel.findByIdAndUpdate(
             existingUser._id,
             { $set: userPayload },
             { new: true }
           ).exec();
           importSummary.updated++;
-          importSummary.details.push({ email, status: 'Atualizado (ativado)' });
+          importSummary.details.push({ email: userEmailLower, status: 'Atualizado (ativado)' });
         } else {
           // Lógica para novos usuários: cria o usuário com a senha padrão "123456"
           const hashedPassword = await bcrypt.hash('123456', 10);
@@ -250,12 +278,12 @@ export class UsersService implements OnModuleInit {
           });
           await newUser.save();
           importSummary.created++;
-          importSummary.details.push({ email, status: 'Criado com senha padrão' });
+          importSummary.details.push({ email: userEmailLower, status: 'Criado com senha padrão' });
         }
       }
 
       return {
-        message: `Importação concluída. ${importSummary.created} criados e ${importSummary.updated} atualizados.`,
+        message: `Importação concluída. ${importSummary.created} criados, ${importSummary.updated} atualizados (e ativados), e ${importSummary.deactivated} usuários (que não estavam na planilha) desativados.`,
         ...importSummary,
       };
     } catch (error) {

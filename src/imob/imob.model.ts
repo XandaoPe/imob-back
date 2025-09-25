@@ -7,6 +7,9 @@ export class Imob extends Document {
   @Prop({
     type: String,
     enum: [
+      '1',
+      '2',
+      '3',
       '01',
       '02',
       '03',
